@@ -1,5 +1,9 @@
 """This program parses an OSM XML file and inserts the data in a
-MongoDB database"""
+MongoDB database
+The problem with the old version of this script is that 
+it doesn't store GEO-Json Points and Linestrings objects 
+therefore MongoDB can't perform GEO-Json queries
+This version does it"""
 
 import sys
 import os
@@ -82,9 +86,10 @@ class OsmHandler(object):
                 """Parse the XML element at the start"""
                 if name == 'node':
                     record = self.fillDefault(attrs)
-                    loc = [float(attrs['lat']),
-                           float(attrs['lon'])]
+                    loc = [float(attrs['lon']),
+                           float(attrs['lat'])]
                     record['loc'] = loc
+                    record['geometry'] = {'type':'Point', 'coordinates': loc}
                 elif name == 'tag':
                     k = attrs['k']
                     v = attrs['v']
@@ -153,11 +158,15 @@ class OsmHandler(object):
                         del record['ky']
                     nds = dict((rec['_id'], rec) for rec in self.client.osm.nodes.find({ '_id': { '$in': record['nd'] } }, { 'loc': 1, '_id': 1 }))
                     record['loc'] = []
+                    record['geometry'] = dict()
+                    locs = []
                     for node in record['nd']:
                         if node in nds:
                             record['loc'].append(nds[node]['loc'])
+                            locs.append(nds[node]['loc'])
                         else:
                             print 'node not found: '+ str(node)
+                    record['geometry'] = {'type':'LineString', 'coordinates': locs}
 
                     ways.append(record)
                     if len(ways) > 2000:
@@ -203,3 +212,4 @@ if __name__ == "__main__":
     #parser.parse(open(filename))
     handler.parse(open(filename))
     client.disconnect()
+
