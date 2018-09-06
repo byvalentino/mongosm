@@ -30,6 +30,10 @@ class OsmHandler(object):
 
         self.client.osm.relations.ensure_index([('id', pymongo.ASCENDING),
                                                 ('version', pymongo.DESCENDING)])
+        
+        #2DSphere index on Geo-Json formatted data
+        self.client.osm.relations.ensure_index([('geometry', pymongo.GEOSPHERE)])        
+        
         self.stat_nodes = 0
         self.stat_ways = 0
         self.stat_relations = 0
@@ -211,5 +215,4 @@ if __name__ == "__main__":
     #parser.setContentHandler(handler)
     #parser.parse(open(filename))
     handler.parse(open(filename))
-    client.disconnect()
-
+    #client.disconnect() #no longer necessary
